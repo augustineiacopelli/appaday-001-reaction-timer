@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>001 · Reaction Timer · AppADay</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0e0e0e;
+      --surface: #1a1a1a;
+      --border: #2a2a2a;
+      --accent: #c8f135;
+      --accent-dim: rgba(200, 241, 53, 0.12);
+      --text: #f0f0e8;
+      --muted: #555550;
+      --danger: #ff4d4d;
+      --wait: #1a1a1a;
+      --ready: #0f1f00;
+      --go: #1a2e00;
+    }
+
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Space Mono', monospace;
+      overflow: hidden;
+    }
+
+    /* Header bar */
+    #header {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--border);
+      z-index: 100;
+      background: var(--bg);
+    }
+
+    #header a {
+      font-family: 'Space Mono', monospace;
+      font-size: 11px;
+      color: var(--muted);
+      text-decoration: none;
+      letter-spacing: 0.08em;
+      transition: color 0.2s;
+    }
+    #header a:hover { color: var(--accent); }
+
+    #header-title {
+      font-family: 'Space Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      color: var(--muted);
+      text-transform: uppercase;
+    }
+
+    #header-num {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 22px;
+      color: var(--accent);
+      letter-spacing: 0.04em;
+    }
+
+    /* Main arena */
+    #arena {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      user-select: none;
+      transition: background 0.15s ease;
+      padding-top: 52px;
+    }
+
+    #arena.state-wait   { background: var(--wait); }
+    #arena.state-ready  { background: var(--ready); }
+    #arena.state-go     { background: var(--go); }
+    #arena.state-result { background: var(--bg); }
+
+    /* Big number display */
+    #big-display {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: clamp(80px, 22vw, 200px);
+      line-height: 1;
+      color: var(--accent);
+      letter-spacing: -0.02em;
+      transition: opacity 0.2s;
+      min-height: 1em;
+      text-align: center;
+    }
+
+    #big-display.dim { opacity: 0.15; }
+
+    #unit {
+      font-family: 'Space Mono', monospace;
+      font-size: clamp(12px, 2vw, 16px);
+      color: var(--muted);
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      margin-top: 4px;
+      margin-bottom: 32px;
+    }
+
+    /* Status message */
+    #status {
+      font-family: 'Space Mono', monospace;
+      font-size: clamp(13px, 2.5vw, 16px);
+      color: var(--muted);
+      letter-spacing: 0.08em;
+      text-align: center;
+      max-width: 340px;
+      line-height: 1.6;
+      margin-bottom: 48px;
+      min-height: 2.4em;
+    }
+
+    #status span.accent { color: var(--accent); }
+    #status span.danger { color: var(--danger); }
+
+    /* Last 5 history */
+    #history {
+      display: flex;
+      gap: 10px;
+      align-items: flex-end;
+      justify-content: center;
+      margin-bottom: 24px;
+    }
+
+    .hist-bar-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .hist-val {
+      font-family: 'Space Mono', monospace;
+      font-size: 10px;
+      color: var(--muted);
+      letter-spacing: 0.04em;
+    }
+
+    .hist-bar {
+      width: 32px;
+      background: var(--border);
+      border-radius: 3px 3px 0 0;
+      transition: height 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.3s;
+      min-height: 4px;
+    }
+
+    .hist-bar.latest { background: var(--accent); }
+
+    .hist-baseline {
+      display: flex;
+      gap: 10px;
+      border-top: 1px solid var(--border);
+      padding-top: 6px;
+      justify-content: center;
+    }
+
+    .hist-label {
+      font-size: 9px;
+      color: var(--muted);
+      letter-spacing: 0.06em;
+      width: 32px;
+      text-align: center;
+    }
+
+    /* Average display */
+    #avg-row {
+      font-family: 'Space Mono', monospace;
+      font-size: 12px;
+      color: var(--muted);
+      letter-spacing: 0.1em;
+      text-align: center;
+    }
+
+    #avg-row span { color: var(--accent); }
+
+    /* Tap hint */
+    #tap-hint {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 10px;
+      color: var(--muted);
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      pointer-events: none;
+      transition: opacity 0.3s;
+    }
+
+    /* Flash overlay for GO moment */
+    #flash {
+      position: fixed;
+      inset: 0;
+      background: var(--accent);
+      opacity: 0;
+      pointer-events: none;
+      z-index: 200;
+      transition: opacity 0.05s;
+    }
+
+    /* Early press shake */
+    @keyframes shake {
+      0%,100% { transform: translateX(0); }
+      20% { transform: translateX(-8px); }
+      40% { transform: translateX(8px); }
+      60% { transform: translateX(-6px); }
+      80% { transform: translateX(6px); }
+    }
+
+    .shake { animation: shake 0.35s ease; }
+
+    /* Pulse on GO */
+    @keyframes pulse-ring {
+      0% { box-shadow: 0 0 0 0 rgba(200,241,53,0.4); }
+      100% { box-shadow: 0 0 0 40px rgba(200,241,53,0); }
+    }
+
+    #arena.state-go #big-display {
+      animation: pulse-ring 0.8s ease-out;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="flash"></div>
+
+  <div id="header">
+    <span id="header-num">001</span>
+    <span id="header-title">Reaction Timer</span>
+    <a href="../index.html">← AppADay</a>
+  </div>
+
+  <div id="arena" class="state-wait" onclick="handleClick()">
+    <div id="big-display" class="dim">—</div>
+    <div id="unit">milliseconds</div>
+    <div id="status">Tap anywhere to begin</div>
+
+    <div id="history">
+      <!-- bars injected by JS -->
+    </div>
+    <div id="avg-row"></div>
+  </div>
+
+  <div id="tap-hint">tap anywhere</div>
+
+  <script>
+    // State machine: 'idle' | 'waiting' | 'ready' | 'result'
+    let state = 'idle';
+    let waitTimer = null;
+    let startTime = null;
+    let results = [];
+    const MAX_RESULTS = 5;
+
+    const arena    = document.getElementById('arena');
+    const display  = document.getElementById('big-display');
+    const unit     = document.getElementById('unit');
+    const status   = document.getElementById('status');
+    const history  = document.getElementById('history');
+    const avgRow   = document.getElementById('avg-row');
+    const flash    = document.getElementById('flash');
+    const tapHint  = document.getElementById('tap-hint');
+
+    function handleClick() {
+      if (state === 'idle' || state === 'result') {
+        startWaiting();
+      } else if (state === 'waiting') {
+        tooEarly();
+      } else if (state === 'ready') {
+        recordResult();
+      }
+    }
+
+    function startWaiting() {
+      state = 'waiting';
+      display.textContent = '—';
+      display.classList.add('dim');
+      unit.textContent = 'milliseconds';
+      status.innerHTML = 'Wait for it…';
+      arena.className = 'state-wait';
+      tapHint.style.opacity = '0';
+
+      // Random delay 1.5s–4.5s
+      const delay = 1500 + Math.random() * 3000;
+      waitTimer = setTimeout(goNow, delay);
+    }
+
+    function goNow() {
+      state = 'ready';
+      arena.className = 'state-go';
+      display.classList.remove('dim');
+      display.textContent = 'GO';
+      unit.textContent = '';
+      status.innerHTML = '<span class="accent">NOW!</span>';
+
+      // flash
+      flash.style.opacity = '0.25';
+      setTimeout(() => { flash.style.opacity = '0'; }, 80);
+
+      startTime = performance.now();
+    }
+
+    function tooEarly() {
+      clearTimeout(waitTimer);
+      state = 'result';
+      arena.className = 'state-result';
+      display.classList.add('dim');
+      display.textContent = '—';
+      unit.textContent = '';
+      status.innerHTML = '<span class="danger">Too early!</span>\nTap to try again.';
+      status.style.whiteSpace = 'pre';
+      arena.classList.add('shake');
+      setTimeout(() => arena.classList.remove('shake'), 400);
+      tapHint.style.opacity = '1';
+    }
+
+    function recordResult() {
+      const elapsed = Math.round(performance.now() - startTime);
+      state = 'result';
+      results.push(elapsed);
+      if (results.length > MAX_RESULTS) results.shift();
+
+      arena.className = 'state-result';
+      display.classList.remove('dim');
+      display.textContent = elapsed;
+      unit.textContent = 'milliseconds';
+
+      let comment = '';
+      if (elapsed < 180) comment = '🟢 Elite';
+      else if (elapsed < 240) comment = '🟡 Sharp';
+      else if (elapsed < 320) comment = '🔵 Average';
+      else comment = '🔴 Slow day';
+
+      status.style.whiteSpace = '';
+      status.innerHTML = `${comment} &nbsp;·&nbsp; Tap to go again`;
+      tapHint.style.opacity = '1';
+
+      renderHistory();
+    }
+
+    function renderHistory() {
+      if (results.length === 0) return;
+
+      const maxVal = Math.max(...results, 500);
+      const maxBarH = 80;
+
+      history.innerHTML = results.map((v, i) => {
+        const h = Math.max(4, Math.round((v / maxVal) * maxBarH));
+        const isLatest = i === results.length - 1;
+        return `
+          <div class="hist-bar-wrap">
+            <div class="hist-val">${v}</div>
+            <div class="hist-bar${isLatest ? ' latest' : ''}" style="height:${h}px"></div>
+          </div>`;
+      }).join('');
+
+      // Labels row
+      const labelsHtml = results.map((_, i) => {
+        const label = results.length - (results.length - 1 - i) === results.length ? 'now' : String(results.length - 1 - i) + 'ago';
+        const n = results.length;
+        const pos = n - 1 - i; // 0 = oldest shown
+        const label2 = pos === n - 1 ? 'now' : `-${n - 1 - pos}`;
+        return `<div class="hist-label">${label2}</div>`;
+      }).join('');
+
+      history.insertAdjacentHTML('afterend', '');
+
+      const avg = Math.round(results.reduce((a, b) => a + b, 0) / results.length);
+      avgRow.innerHTML = results.length > 1
+        ? `avg &nbsp;<span>${avg}ms</span>&nbsp; over ${results.length} attempts`
+        : '';
+    }
+  </script>
+
+</body>
+</html>
